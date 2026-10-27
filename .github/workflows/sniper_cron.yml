@@ -6,6 +6,11 @@ on:
     # Nota: GitHub poate intarzia rularile programate cu cateva minute in perioadele aglomerate.
     - cron: '*/15 * * * *'
   workflow_dispatch: # Permite si pornire manuala cu un buton
+    inputs:
+      test_telegram:
+        description: 'Trimite doar un mesaj de test pe Telegram (fara scanare)'
+        type: boolean
+        default: false
 
 # Necesar ca workflow-ul sa poata salva baza de date inapoi in repo.
 # Fara asta push-ul esua in tacere, baza se "uita" si primeai aceleasi alerte la fiecare rulare.
@@ -36,7 +41,16 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: Telegram Test Message
+        if: ${{ github.event.inputs.test_telegram == 'true' }}
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          python send_test_message.py
+
       - name: Run Sniper Cycle
+        if: ${{ github.event.inputs.test_telegram != 'true' }}
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
@@ -49,7 +63,7 @@ jobs:
           python run_sniper.py --once
 
       - name: Persist Deals Database
-        if: always()
+        if: ${{ always() && github.event.inputs.test_telegram != 'true' }}
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"

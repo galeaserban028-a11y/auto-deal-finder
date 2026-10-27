@@ -32,6 +32,7 @@ if not token or not chat_ids:
 
 print(f"Trimitere mesaj de test catre {len(chat_ids)} destinatari...")
 
+any_sent = False
 for cid in chat_ids:
     url = f"https://api.telegram.org/bot{token}/sendMessage"
     payload = {
@@ -69,3 +70,9 @@ for cid in chat_ids:
                     print(f"  ❌ Eroare curl catre {cid}: {res_data.get('description')}")
         except Exception as ce:
             print(f"  ❌ Exceptie curl catre {cid}: {type(ce).__name__}")
+    any_sent = any_sent or sent
+
+if not any_sent:
+    print("❌ Mesajul NU a ajuns la niciun destinatar. Verifica tokenul/chat ID-ul si ca ai dat /start botului.")
+    sys.exit(1)
+print("✅ Mesaj de test trimis.")
