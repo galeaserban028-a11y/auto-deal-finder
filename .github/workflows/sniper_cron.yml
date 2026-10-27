@@ -1,0 +1,67 @@
+name: AutoDealHunter 24/7 Cloud Sniper
+
+on:
+  schedule:
+    # Ruleaza automat la fiecare 15 minute pe serverele GitHub (24/7, chiar daca PC-ul e inchis).
+    # Nota: GitHub poate intarzia rularile programate cu cateva minute in perioadele aglomerate.
+    - cron: '*/15 * * * *'
+  workflow_dispatch: # Permite si pornire manuala cu un buton
+
+# Necesar ca workflow-ul sa poata salva baza de date inapoi in repo.
+# Fara asta push-ul esua in tacere, baza se "uita" si primeai aceleasi alerte la fiecare rulare.
+permissions:
+  contents: write
+
+# Nu lasa doua rulari sa se suprapuna (ar trimite alerte duble si ar crea conflicte pe baza de date)
+concurrency:
+  group: sniper
+  cancel-in-progress: false
+
+jobs:
+  snipe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 14
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run Sniper Cycle
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          MIN_NET_PROFIT_EUR: ${{ secrets.MIN_NET_PROFIT_EUR || '1200' }}
+          MIN_DISCOUNT_PERCENT: ${{ secrets.MIN_DISCOUNT_PERCENT || '15' }}
+          MAX_LISTING_PRICE_EUR: ${{ secrets.MAX_LISTING_PRICE_EUR || '15000' }}
+        run: |
+          python run_sniper.py --once
+
+      - name: Persist Deals Database
+        if: always()
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add car_deals.db
+          if git diff --cached --quiet; then
+            echo "Nicio modificare in baza de date."
+            exit 0
+          fi
+          git commit -m "chore: persist sniper database [skip ci]"
+          for i in 1 2 3; do
+            git pull --rebase -X theirs && git push && exit 0
+            sleep 5
+          done
+          echo "::error::Nu s-a putut salva baza de date (verifica Settings > Actions > Workflow permissions = Read and write)"
+          exit 1

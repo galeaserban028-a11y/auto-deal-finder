@@ -1,0 +1,28 @@
+# Secrete - NU se urca niciodata pe GitHub
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# SQLite: baza principala (car_deals.db) ESTE urcata intentionat de GitHub Actions
+# ca sa tina minte anunturile deja trimise. Fisierele temporare nu.
+*.db-wal
+*.db-shm
+*.db.bak
+*.db-journal
+
+# Altele
+.streamlit/secrets.toml
+.DS_Store
+Thumbs.db
+
+# Copia de siguranta facuta la audit (nu se urca)
+_backup_inainte_de_audit/
+
+# Fisiere temporare de verificare
+_audit_*

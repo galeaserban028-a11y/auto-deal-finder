@@ -1,0 +1,23 @@
+services:
+  - type: worker
+    name: autodealhunter-sniper-247
+    env: python
+    region: frankfurt
+    # Atentie: background worker-ele Render NU sunt gratuite, iar discul e temporar
+    # (baza de date se reseteaza la fiecare deploy). Varianta gratuita: GitHub Actions.
+    plan: starter
+    buildCommand: pip install -r requirements.txt
+    startCommand: python run_sniper.py --interval 60
+    envVars:
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: TELEGRAM_CHAT_ID
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: MAX_LISTING_PRICE_EUR
+        value: "15000"
+      - key: MIN_NET_PROFIT_EUR
+        value: "1200"
+      - key: MIN_DISCOUNT_PERCENT
+        value: "15"
